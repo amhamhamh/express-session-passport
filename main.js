@@ -6,27 +6,44 @@ var compression = require('compression');
 var helmet = require('helmet')
 app.use(helmet());
 var session = require('express-session')
-var FileStore = require('session-file-store')(session)
+var FileStore = require('session-file-store')(session) // 파일 저장하는 섹션
+var flash = require('flash')                           // flash를 실행하는 모듈
+
 app.use(express.static('public'));
 app.use(bodyParser.urlencoded({
   extended: false
 }));
 app.use(compression());
 app.use(session({
-  secret: 'asadlfkj!@#!@#dfgasdg',
+  secret: 'asadlfkj!@#!@#dfgasdg', 
   resave: false,
   saveUninitialized: true,
   store: new FileStore()
 }))
+
+app.use(flash()); //flash 미들웨어
+/*
+app.get('/flash',function(req,res){
+  req.flash('msg','flash is back!!')    // 
+  res.send('flahs')  // 해당코드가 작동되면 session에 msg: flash is back이 작동이 됨
+})
+
+app.get('/flash display', function(req,res){
+  var fsmg = req.flash();  //req.flash를 fsmg를 받음
+  console.log(fsmg);
+  res.send(fsmg);         //받은 변수 fsmg를 화면에 출력하고, session에 저장된 것을 없애버림
+})
+*/
 var authData = {
   email: 'egoing777@gmail.com',
   password: '111111',
   nickname: 'egoing'
 };
-var passport = require('passport'),
+var passport = require('passport'),                         //Passport는 login_Process를 처리하는 과정임
   LocalStrategy = require('passport-local').Strategy;
 app.use(passport.initialize());
 app.use(passport.session());
+
 
 passport.serializeUser(function(user, done) {  // 이 코드는 로그인이 성공했을 떄 session에 정보를 저장하는 코드이다.
   console.log('serializeUser', user);           //user로 들어가서 done으로 전달한다. 
@@ -37,7 +54,7 @@ passport.deserializeUser(function(id, done) { // 이 코드는 session 저장된
   console.log('deserializeUser', id);         
   done(null, authData);                     // 저장된 session의 id로 조회하여,authData를 세팅한다. 
 });
-
+               
 passport.use(new LocalStrategy(
   {
     usernameField: 'email',
@@ -49,7 +66,10 @@ passport.use(new LocalStrategy(
       console.log(1);
       if(password === authData.password){               // 입력된 password 값이 맞을 때
         console.log(2);
-        return done(null, authData);                
+        return done(null, authData{
+          message : 'Welcome.'
+        }); 
+                       
       } else {
         console.log(3);
         return done(null, false, {                      // password가 틀릴 떄 실행
@@ -68,8 +88,10 @@ passport.use(new LocalStrategy(
 app.post('/auth/login_process',               //로그인을 처리하는 과정
   passport.authenticate('local', {            //여기에서는 로컬 전략을 쓰고 있다. 
     successRedirect: '/',                     //성공하면 홈으로 가고
-    failureRedirect: '/auth/login'            // 틀리면 auth/login 로그인 화면으로 다시 돌아간다. 
-  }));
+    failureRedirect: '/auth/login',            // 틀리면 auth/login 로그인 화면으로 다시 돌아간다. 
+    failureFlash:true,                        // flash 실패했을 떄는 true  
+    successFlash:true                         // success 했을 때 true로.  
+  }));  
 app.get('*', function (request, response, next) {
   fs.readdir('./data', function (error, filelist) {
     request.list = filelist;
@@ -80,9 +102,10 @@ app.get('*', function (request, response, next) {
 var indexRouter = require('./routes/index');
 var topicRouter = require('./routes/topic');
 var authRouter = require('./routes/auth');
-app.use('/', indexRouter);
-app.use('/topic', topicRouter);
+app.use('/', indexRouter);                // 홈 화면
+app.use('/topic', topicRouter);           // 각 기능별 구현할 떄 나옴 
 app.use('/auth', authRouter);
+
 app.use(function (req, res, next) {
   res.status(404).send('Sorry cant find that!');
 });
